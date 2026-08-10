@@ -30,6 +30,10 @@ Sourced from code, comments, and TODOs. Trust the code over the comments; both a
   across peers.
 - `GetGun` failure returns `FGunKey()` = definition `"M6D"`, instance 0. `DefaultGunKey` is
   also `"M6D"`. If you don't check `IsValidInstance()`, you will debug a phantom pistol.
+- `FGunDefinitionRow`'s seven ability-string fields are **dead**: the loader reads only
+  `LoadableCPP` (`StaticAssetLoader.cpp:30,60`) and `GetGun` passes no abilities
+  (`ArtilleryDispatch.cpp:508-519`). Inject custom abilities via `Initialize` params.
+  *Slated to change — re-verify against `StaticAssetLoader.cpp` (added 2026-08).*
 
 ## Initialize() ordering
 

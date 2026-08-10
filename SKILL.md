@@ -133,6 +133,8 @@ Details: [reference/attributes.md](reference/attributes.md).
    plus a default ctor, and `Initialize` overridden as `return ARTGUN_MACROAUTOINIT(MyCodeWillHandleKeys);`.
 2. Add a row to the `GunDefinitions` DataTable: `GunDefinitionId`, `IsCPP=true`,
    `LoadableCPP=/Script/YourModule.MyGun` (struct name **without** the `F` prefix).
+   Only `LoadableCPP` is read today; the row's ability fields are decorative — inject
+   custom abilities via `Initialize` params (see reference/authoring-guns.md).
 3. Done — the loader picks it up at GameInstance init; grant it via workflow A.
 
 Full recipe, ability-phase semantics, and the `FSimpleTriggerGun` trigger pattern:

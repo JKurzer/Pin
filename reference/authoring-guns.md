@@ -11,6 +11,11 @@
    The base implementations already drive the 7-ability chain correctly.
 5. **Add a DataTable row** (`FGunDefinitionRow`): `GunDefinitionId`, `IsCPP=true`,
    `LoadableCPP=/Script/<Module>.<StructNameWithoutF>`.
+   **Only `LoadableCPP` is consumed today** (`StaticAssetLoader.cpp:30,60`) — the row's seven
+   ability-string fields are dead, and `GetGun` passes no abilities
+   (`ArtilleryDispatch.cpp:508-519`). Attach custom abilities via the `Initialize` params
+   (see below). *Slated to change — re-verify against `StaticAssetLoader.cpp` before relying
+   on this note (added 2026-08).*
 6. Grant with `RequestUnboundGun` / `GetGun`, or `FCM->RegisterGun`. Bind a pattern to fire from input.
 
 ## Minimal example — FMockArtilleryGun (Public/TestTypes/FMockArtilleryGun.h)
@@ -56,6 +61,15 @@ Chain wiring (in `PreFireGun`): `Prefire->GunBinder.BindRaw(this, &FArtilleryGun
 
 `enum FArtilleryStates { Fired, Canceled, CanceledAfterCommit };` — abilities report outcomes
 through `GunBinder` during `EndAbility`.
+
+### Attaching custom abilities (the working path)
+
+The DataTable can't wire abilities (see step 5). Inject them in your `Initialize` override
+by passing ability instances as the `PF/PFC/F/FC/PtF/PtFc/FFC` args through
+`ARTGUN_MACROAUTOINIT`. Assignment is all-or-none (`FArtilleryGun.cpp:107-115`): partial
+injection leaves the remaining slots null rather than defaulted. `Initialize` `AddToRoot`s
+ability UObjects and the gun dtor `RemoveFromRoot`s them — keep instances alive for exactly
+the gun's lifetime, no sharing across guns.
 
 ## Trigger guns — FSimpleTriggerGun (Public/Systems/InventoryEssentialTypes.h ~line 444)
 
