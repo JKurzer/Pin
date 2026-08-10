@@ -12,8 +12,13 @@ Workflow:
     python pin.py emit                  # run at the START of every subturn
     python pin.py check --extract draft.txt   # optional: fidelity self-check
 
-State: JSON list at $ARTILLERY_GUNS_PINS, else ~/.artillery-guns-pins.json.
+State: JSON list resolved from $CONTEXT_PINS, $ARTILLERY_GUNS_PINS (legacy),
+~/.context-pins.json, or ~/.artillery-guns-pins.json (legacy), first match wins.
 Pins store abspath + sha256-at-pin-time; emit flags content changed since pin.
+
+Portability: pin.py is the framework-agnostic core (stdlib only). Framework
+adapters (claude-code hooks, code-puppy plugin, static render) implement only
+the render path against the same state file. See pinning/README.md.
 
 check verifies that claim-shaped passages actually appear in the pinned corpus
 (algorithm adapted from the verbatim plugin, claude-plugins/verbatim). It is
@@ -36,8 +41,15 @@ TOKENS_PER_BYTE = 0.25            # rough chars/4 estimate
 
 
 def state_path() -> Path:
-    override = os.environ.get("ARTILLERY_GUNS_PINS")
-    return Path(override) if override else Path.home() / ".artillery-guns-pins.json"
+    for env in ("CONTEXT_PINS", "ARTILLERY_GUNS_PINS"):
+        override = os.environ.get(env)
+        if override:
+            return Path(override)
+    for name in (".context-pins.json", ".artillery-guns-pins.json"):
+        candidate = Path.home() / name
+        if candidate.exists():
+            return candidate
+    return Path.home() / ".context-pins.json"
 
 
 def load_state() -> list:
@@ -155,9 +167,10 @@ def cmd_emit(_args) -> int:
         print(f"=== END PINNED {i}/{len(pins)} ===\n")
         emitted += 1
         total_bytes += size
-    print(f"--- pin.py: emitted {emitted}/{len(pins)}"
-          f"{f', {missing} MISSING' if missing else ''}, "
-          f"{total_bytes} B, ~{int(total_bytes * TOKENS_PER_BYTE)} tokens ---")
+    if not getattr(_args, "quiet", False):
+        print(f"--- pin.py: emitted {emitted}/{len(pins)}"
+              f"{f', {missing} MISSING' if missing else ''}, "
+              f"{total_bytes} B, ~{int(total_bytes * TOKENS_PER_BYTE)} tokens ---")
     return 0
 
 
@@ -305,7 +318,9 @@ def main() -> int:
         sp.add_argument("files", nargs="+", help="files (resolved to abspaths)")
     sub.add_parser("list", help="show pins with size/hash")
     sub.add_parser("clear", help="remove all pins")
-    sub.add_parser("emit", help="replay all pinned files verbatim (default)")
+    sp = sub.add_parser("emit", help="replay all pinned files verbatim (default)")
+    sp.add_argument("--quiet", action="store_true",
+                    help="suppress the trailing summary line (for static includes)")
     sp = sub.add_parser("check", help="verify claims appear in the pinned corpus "
                                       "(needs rapidfuzz; exit 1 on any failure)")
     src = sp.add_mutually_exclusive_group(required=True)

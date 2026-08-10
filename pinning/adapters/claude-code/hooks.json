@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python C:/path/to/pinning/adapters/claude-code/pin_hook.py"
+          }
+        ]
+      }
+    ]
+  }
+}
