@@ -9,7 +9,8 @@ This file is short on purpose. Replaying it is cheap. Not replaying it is expens
 IN SCOPE: ArtilleryGun lifecycle, gun authoring, attributes/identities/vectors/tags,
 fire-control wiring, DataTable definitions, the BP library surface.
 
-OUT OF SCOPE — do NOT parse, unfold, or "just peek" at these. They eat context whole:
+EXPENSIVE — budget applies: these eat context whole. Read at most ONE large file
+per turn, total, across this list and any other file >300 lines.
 - `Private/FArtilleryBusyWorker.cpp` / the threaded executor internals
 - `Public/Systems/Threads/` (FArtilleryTicklitesThread, FArtilleryStateTreesThread, FRollbackArtilleryWorker)
 - `CanonicalInputStreamECS` (input pattern matcher internals)
@@ -18,14 +19,16 @@ OUT OF SCOPE — do NOT parse, unfold, or "just peek" at these. They eat context
 - The **LocomoCore plugin** (repo root, deliberately NOT cloned)
 - Anything under `PhysicsTypes/` beyond a signature you already have
 
-If a task genuinely requires those: STOP. Tell the user what's needed and ask how to proceed.
+If a task genuinely requires MORE than one of these in a turn: STOP. Tell the user
+what's needed and ask how to proceed.
 Use `reference/locomotion-menu.md` for locomotion-shaped questions instead of source.
 
 ## Context discipline (this codebase is dense; agents die here)
 
 1. Grep before read. Never read what a grep answers.
 2. Headers before cpps. Signatures before bodies. Bodies only by line range.
-3. Never full-read a file >300 lines. Range-read around grep hits.
+3. Large files (>300 lines): one full read per turn, max. Range-read everything else
+   around grep hits.
 4. One concept per read. If you can't name what you're looking for, don't open the file.
 5. Don't re-read what this skill already states. Trust the skill; verify only on contradiction.
 6. Cite file:line when reporting. "Somewhere in dispatch" is not a location.
