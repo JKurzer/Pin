@@ -1,0 +1,4 @@
+# Local scratch/test artifacts stay on disk but out of the repo
+scratch/
+__pycache__/
+*.pyc
