@@ -17,7 +17,7 @@ import os
 import sys
 from pathlib import Path
 
-MAX_BYTES = 8192
+MAX_BYTES = 12288
 MAX_PINS = 16
 
 

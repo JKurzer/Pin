@@ -21,7 +21,8 @@ Two pieces, that's all:
 2. **Render contract** — read state, read each live file, emit:
    a header line, then per file `### <abspath> (sha256:<first12> [CHANGED since pinned])`
    followed by verbatim content. Skip missing files. Cap total bytes
-   (8 KB is sane). Hash drift flagging is the whole point — it makes stale
+   (the shipped adapters use 12 KB; GUARDRAILS + one source header fits).
+   Hash drift flagging is the whole point — it makes stale
    pins visible instead of silently wrong.
 
 **State is written only by the core** (`scripts/pin.py`: pin/unpin/clear —
@@ -48,6 +49,8 @@ python scripts/pin.py check --extract f.md  # claim fidelity vs pinned corpus (n
 
 ## Sizing
 
-GUARDRAILS-scale pins (~2.4 KB) cost ~600 tokens per injection. Keep pins to
-short hot-loop rule files. The mechanism exists to defeat drift on *rules*;
-it is not a document-retrieval system.
+GUARDRAILS-scale pins (~2.4 KB) cost ~600 tokens per injection; the current
+live set (rules + FArtilleryGun.h) is ~2.4k tokens. Keep pins to short hot-loop
+rule files plus at most one ground-truth source file. The mechanism exists to
+defeat drift on *rules* and kill docs-citing-docs hearsay; it is not a
+document-retrieval system.

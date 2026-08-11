@@ -19,7 +19,7 @@ from pathlib import Path
 from code_puppy.callbacks import register_callback
 from code_puppy.messaging import emit_warning
 
-MAX_PROMPT_BYTES = 8192  # total injection budget per run; tune to taste
+MAX_PROMPT_BYTES = 12288  # total injection budget per run; tune to taste
 MAX_PINS = 16
 
 
