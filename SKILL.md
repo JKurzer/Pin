@@ -66,9 +66,10 @@ trace ownership before assuming `GunByKey` is the whole truth.
 3. **All gameplay state lives in attributes/tags keyed by `FSkeletonKey`.** Never store state
    on abilities or rely on UObject replication. *Only attributes replicate.*
 4. **Abilities**: implement `K2_ActivateViaArtillery` ONLY; must call `CommitAbility` and
-   `EndAbility`; `EndAbility` reports `FArtilleryStates::{Fired, Canceled, CanceledAfterCommit}`
-   through `GunBinder`. No timers, no async tasks, no latent nodes — they break rollback.
-   Cosmetic phases are skipped automatically when `RerunDueToReconcile` is true.
+   `EndAbility`; `EndAbility` reports through `GunBinder` — but the mapping is INVERTED
+   (`bWasCancelled=true` → `Fired`); pass `true` to continue the chain (see
+   reference/gotchas.md §Firing). No timers, no async tasks, no latent nodes — they break
+   rollback. Cosmetic phases are skipped automatically when `RerunDueToReconcile` is true.
 5. **Thread discipline**: registration, pattern binding, and `GetGun` happen on the **game
    thread**. The busy worker only reads queues/buffers. `UFireControlMachine::pushPatternToRunner`
    is game-thread-only ("IF YOU DO NOT CALL THIS FROM THE GAMETHREAD, YOU WILL HAVE A BAD TIME").
@@ -133,8 +134,8 @@ Details: [reference/attributes.md](reference/attributes.md).
    plus a default ctor, and `Initialize` overridden as `return ARTGUN_MACROAUTOINIT(MyCodeWillHandleKeys);`.
 2. Add a row to the `GunDefinitions` DataTable: `GunDefinitionId`, `IsCPP=true`,
    `LoadableCPP=/Script/YourModule.MyGun` (struct name **without** the `F` prefix).
-   Only `LoadableCPP` is read today; the row's ability fields are decorative — inject
-   custom abilities via `Initialize` params (see reference/authoring-guns.md).
+   The row's ability fields are decorative today (loader reads Id/IsCPP/LoadableCPP
+   only) — inject custom abilities via `Initialize` params (see reference/authoring-guns.md).
 3. Done — the loader picks it up at GameInstance init; grant it via workflow A.
 
 Full recipe, ability-phase semantics, and the `FSimpleTriggerGun` trigger pattern:

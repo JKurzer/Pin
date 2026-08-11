@@ -8,12 +8,16 @@
    `return ARTGUN_MACROAUTOINIT(MyCodeWillHandleKeys);`
    (`#define ARTGUN_MACROAUTOINIT(X) Super::Initialize(KeyFromDispatch, X, PF, PFC, F, FC, PtF, PtFc, FFC)`)
 4. **Override fire phases** only if you need custom behavior (`PreFireGun`/`FireGun`/`PostFireGun`).
-   The base implementations already drive the 7-ability chain correctly.
+   The base chain advances via `GunBinder` reports from each ability's `EndAbility` — and
+   only if the reported state is `Fired`. NOTE the outcome mapping is inverted
+   (`bWasCancelled=true` → `Fired`); with stock default abilities and today's null event
+   data the chain advances through `ActivateAbility`'s warning branch. Read
+   reference/gotchas.md §Firing before trusting any of this.
 5. **Add a DataTable row** (`FGunDefinitionRow`): `GunDefinitionId`, `IsCPP=true`,
    `LoadableCPP=/Script/<Module>.<StructNameWithoutF>`.
-   **Only `LoadableCPP` is consumed today** (`StaticAssetLoader.cpp:30,60`) — the row's seven
-   ability-string fields are dead, and `GetGun` passes no abilities
-   (`ArtilleryDispatch.cpp:508-519`). Attach custom abilities via the `Initialize` params
+   **Only `GunDefinitionId`/`IsCPP`/`LoadableCPP` are consumed today**
+   (`StaticAssetLoader.cpp:30-60`) — the row's seven ability-string fields are dead,
+   and `GetGun` passes no abilities (`ArtilleryDispatch.cpp:508-519`). Attach custom abilities via the `Initialize` params
    (see below). *Slated to change — re-verify against `StaticAssetLoader.cpp` before relying
    on this note (added 2026-08).*
 6. Grant with `RequestUnboundGun` / `GetGun`, or `FCM->RegisterGun`. Bind a pattern to fire from input.
@@ -26,7 +30,9 @@ delegate chaining because it uses no abilities — a real gun keeps the base pha
 
 ## Ability phases
 
-Seven slots, assigned all-or-none; null slots become default `UArtilleryPerActorAbilityMinimum`:
+Seven slots; each null slot is defaulted at `Initialize` — but only while the `Prefire`
+**member** is null at entry (`FArtilleryGun.cpp:134-148`). Inject via the `Initialize`
+params; never pre-assign ability members (see gotchas). The slots:
 
 | Slot | Role |
 |---|---|
@@ -66,8 +72,9 @@ through `GunBinder` during `EndAbility`.
 
 The DataTable can't wire abilities (see step 5). Inject them in your `Initialize` override
 by passing ability instances as the `PF/PFC/F/FC/PtF/PtFc/FFC` args through
-`ARTGUN_MACROAUTOINIT`. Assignment is all-or-none (`FArtilleryGun.cpp:107-115`): partial
-injection leaves the remaining slots null rather than defaulted. `Initialize` `AddToRoot`s
+`ARTGUN_MACROAUTOINIT`. Slots you don't inject get per-slot defaults
+(`FArtilleryGun.cpp:134-148`) — but the whole block is skipped if the `Prefire` member was
+pre-assigned, leaving six nulls and a crash in `SetGunKey`. `Initialize` `AddToRoot`s
 ability UObjects and the gun dtor `RemoveFromRoot`s them — keep instances alive for exactly
 the gun's lifetime, no sharing across guns.
 
@@ -90,8 +97,16 @@ struct FSimpleTriggerGun : public FArtilleryGun
 };
 ```
 `FQuestTriggerGun` (Public/Systems/FQuestGun.h) shows the specialization: override
-`PostFireGun` + `PostCheck()`. These are the guns `UInventoryDispatch::TriggerLinkedGuns`
-owns by value — they must be hashable/comparable as shown.
+`PostFireGun` (without calling base — base would activate the PostFire ability whose
+`GunBinder` is unbound) + `PostCheck()`.
+
+Live wiring (this snapshot): inventory triggers are created by `CreateOnVerTick` →
+`GetGun(defId, itemKey)` → `GunByKey` + `TriggerGuns_BusyWorkerOnly`
+(`InventoryDispatch.cpp:129-130`) — DataTable-loaded like any gun, stored polymorphically
+(no slicing). The by-value `TriggerLinkedGuns` set is dead code here; keep the
+hash/eq trio anyway as the by-value idiom. Note `Inventory_VERIFIEDFRAMETESTMODE` is
+`#define`d `true` (`InventoryEssentialTypes.h:15`), so the verified-frame gate is
+compiled open: `Precheck` currently runs on every activation.
 
 ## Wiring a projectile
 

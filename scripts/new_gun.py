@@ -84,9 +84,9 @@ public:
 \t\treturn Arg.MyGunKey.GunInstanceID;
 \t}}
 
-\t// Trigger guns may live in a seq::ordered_set BY VALUE: equality is identity.
-\t// WARNING: stored as FSimpleTriggerGun, your Precheck/operator== slice away —
-\t// the set must be typed on F{name} for overrides to survive.
+\t// GetTypeHash/operator==/std::hash trio: the FQuestGun idiom, required if this type
+\t// is ever stored BY VALUE (seq::ordered_set). Live registry paths store TSharedPtr —
+\t// polymorphic, no slicing (see reference/gotchas.md §Trigger guns).
 \tbool operator==(const F{name}& other) const
 \t{{
 \t\treturn MyGunKey == other.MyGunKey;
@@ -121,9 +121,11 @@ BASES = {
         "includes": ['"FArtilleryGun.h"', '"InventoryEssentialTypes.h"'],
         "body": TRIGGER_BODY,
         "next": [
-            'Trigger guns are NOT DataTable-loaded. They are owned by UInventoryDispatch',
-            '(TriggerLinkedGuns, a seq::ordered_set BY VALUE — the set must be typed on',
-            'F{name} or your Precheck slices away). See reference/authoring-guns.md and',
+            'Trigger guns are DataTable-loaded like any gun; the inventory path creates',
+            'them via CreateOnVerTick -> GetGun (InventoryDispatch.cpp:129-130), stored',
+            'polymorphically in GunByKey + TriggerGuns_BusyWorkerOnly (no slicing).',
+            'Note: Inventory_VERIFIEDFRAMETESTMODE is currently #defined true, so Precheck',
+            'runs on every activation. See reference/authoring-guns.md; example:',
             'FQuestTriggerGun (Public/Systems/FQuestGun.h).',
         ],
     },
