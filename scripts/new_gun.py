@@ -38,6 +38,18 @@ struct {api} F{name} : public FArtilleryGun
 public:
 \tfriend class UArtilleryPerActorAbilityMinimum;
 
+\t// Stats as MEMBER INITIALIZERS, not ctor bodies: the DataTable loader may
+\t// default-construct the struct, so anything set in the keyed ctor never runs
+\t// on that path. These seed the default attributes at Initialize
+\t// (FArtilleryGun.cpp:107-118). MaxAmmo = 0 disables the ammo/reload system
+\t// entirely (FTGunFinalTickResolver gates on MAX_AMMO > 0).
+\tUPROPERTY(EditAnywhere, BlueprintReadOnly)
+\tint MaxAmmo = 30;
+\tUPROPERTY(EditAnywhere, BlueprintReadOnly)
+\tint Firerate = 50;   // frames between shots (cooldown), ~120hz sim
+\tUPROPERTY(EditAnywhere, BlueprintReadOnly)
+\tint ReloadTime = 120; // frames to reload
+
 \tF{name}(const FGunKey& KeyFromDispatch, UArtilleryDispatch* Dispatch)
 \t\t: FArtilleryGun(KeyFromDispatch, Dispatch)
 \t{{

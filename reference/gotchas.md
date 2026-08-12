@@ -109,6 +109,13 @@ Sourced from code, comments, and TODOs. Trust the code over the comments; both a
 - `RegisterControllite` has no removal path ("for now, you can't remove these").
 - `GetAttribRequired` is marked DEPRECATED and `checkf`s on miss — a missing attribute is a
   crash, not an error. Prefer `GetAttrib` + null check, or `GetAttribAndApplyIf`.
+- Ammo economy is NOT manual: a per-gun `GunFinalTickResolver` ticklite decrements
+  `COOLDOWN_REMAINING` and auto-reloads on empty (`FTGunFinalTickResolver.h:41-87`),
+  gated on `MAX_AMMO > 0`. (An earlier eval note claimed cooldown was never decremented -
+  falsified 2026-08 by direct read.) Unverified: the post-shot arming site of
+  `COOLDOWN_REMAINING`/`TRIGGER_PULLED`.
+- Gun stats in the keyed-ctor body are a trap: the DataTable loader may default-construct,
+  skipping them. Use member initializers (`FArtilleryGun.h:54-60` shows the pattern).
 - `~FArtilleryGun` calls `Deregister` only `if (MyDispatch && MyDispatch->IsGunLive(MyGunKey))`
   — guns owned elsewhere (inventory) or never registered won't be deregistered by the dtor.
 

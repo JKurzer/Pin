@@ -28,6 +28,28 @@ The canonical skeleton: constructor sets `MyGunKey`, all three fire phases overr
 `Initialize` returns `ARTGUN_MACROAUTOINIT(MyCodeWillHandleKeys)`. Note the mock skips the
 delegate chaining because it uses no abilities — a real gun keeps the base phase logic.
 
+## Ammo, cooldown, reload — the tick resolver does it
+
+Every gun gets a per-gun `GunFinalTickResolver` ticklite at `Initialize`
+(`REGISTER_GUN_FINAL_TICK_RESOLVER`, `FArtilleryGun.cpp:161`). Each tick
+(`TIcklites/FTGunFinalTickResolver.h:41-87`) it:
+
+- decrements `COOLDOWN_REMAINING` by 1, floored at 0;
+- if `MAX_AMMO > 0`: when `AMMO` hits 0, starts a reload (`RELOAD_REMAINING = RELOAD`),
+  ticks it down, and completes at 0 (`AMMO = MAX_AMMO`);
+- expires when its gun pointer goes null (checked every 16 ticks).
+
+Consequences:
+- **`MaxAmmo = 0` disables the ammo/reload system entirely** (gate at resolver; member
+  comment `FArtilleryGun.h:54`). This is the supported no-ammo pattern (heat guns etc.).
+- Set `MaxAmmo`/`Firerate`/`ReloadTime` as **member initializers**, never in the keyed
+  ctor body: the DataTable loader may default-construct the struct, and ctor-body
+  assignments never run on that path. Initializers apply either way and seed the
+  default attributes at `Initialize` (`FArtilleryGun.cpp:107-118`).
+- The resolver only *counts down*; it never arms `COOLDOWN_REMAINING` after a shot
+  and never touches `TRIGGER_PULLED`. Who writes those is the gun/ability's job
+  (arming site not in the resolver - verify current source before relying on a spot).
+
 ## Ability phases
 
 Seven slots; each null slot is defaulted at `Initialize` — but only while the `Prefire`
@@ -121,7 +143,8 @@ for hit behavior. Base implementation: pulls owner transform as damage source an
 - [ ] Struct is `USTRUCT(BlueprintType)` with `GENERATED_BODY()` (loader uses reflection).
 - [ ] Module exposes it via `<MODULE>_API`.
 - [ ] `LoadableCPP` path omits the `F` prefix (`/Script/MyModule.MyGun`).
-- [ ] `MaxAmmo`/`Firerate`/`ReloadTime` set before `Initialize` (they seed default attributes).
+- [ ] `MaxAmmo`/`Firerate`/`ReloadTime` declared as member initializers (they seed
+  default attributes at `Initialize`; ctor-body assignment is loader-fragile).
 - [ ] Owner actor already registered with `UTransformDispatch`.
 - [ ] Owner has a `BeamFiringPoint` scene component if the gun needs a muzzle.
 - [ ] Pattern registered (FCM) if the gun should fire from input.
