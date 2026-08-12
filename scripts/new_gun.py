@@ -38,18 +38,6 @@ struct {api} F{name} : public FArtilleryGun
 public:
 \tfriend class UArtilleryPerActorAbilityMinimum;
 
-\t// Stats as MEMBER INITIALIZERS, not ctor bodies: the DataTable loader may
-\t// default-construct the struct, so anything set in the keyed ctor never runs
-\t// on that path. These seed the default attributes at Initialize
-\t// (FArtilleryGun.cpp:107-118). MaxAmmo = 0 disables the ammo/reload system
-\t// entirely (FTGunFinalTickResolver gates on MAX_AMMO > 0).
-\tUPROPERTY(EditAnywhere, BlueprintReadOnly)
-\tint MaxAmmo = 30;
-\tUPROPERTY(EditAnywhere, BlueprintReadOnly)
-\tint Firerate = 50;   // frames between shots (cooldown), ~120hz sim
-\tUPROPERTY(EditAnywhere, BlueprintReadOnly)
-\tint ReloadTime = 120; // frames to reload
-
 \tF{name}(const FGunKey& KeyFromDispatch, UArtilleryDispatch* Dispatch)
 \t\t: FArtilleryGun(KeyFromDispatch, Dispatch)
 \t{{
@@ -69,6 +57,13 @@ public:
 \t\tUArtilleryPerActorAbilityMinimum* FFC = nullptr)
 \t\toverride
 \t{{
+\t\t// Stat defaults live HERE - not in redeclared members (they SHADOW the
+\t\t// base members; seeding reads the base, FArtilleryGun.cpp:107-118) and
+\t\t// not in ctor bodies (the DataTable loader may default-construct).
+\t\t// Initialize runs on every path; assign BEFORE the macro seeds attributes.
+\t\tMaxAmmo = 30;     // 0 disables the ammo/reload system entirely
+\t\tFirerate = 50;    // frames between shots, ~120hz sim
+\t\tReloadTime = 120; // frames to reload
 \t\treturn ARTGUN_MACROAUTOINIT(MyCodeWillHandleKeys);
 \t}}
 }};
@@ -156,7 +151,11 @@ def main() -> int:
                         help=f"Base struct, one of: {', '.join(sorted(BASES))}")
     args = parser.parse_args()
 
-    name = args.name[1:] if args.name.startswith("F") and len(args.name) > 1 else args.name
+    # Strip the UE struct prefix only when it's actually a prefix: 'F' followed
+    # by an uppercase letter (FSparkplug -> Sparkplug; FinalCheck stays FinalCheck).
+    name = args.name
+    if len(name) > 2 and name[0] == "F" and name[1].isupper():
+        name = name[1:]
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
         print(f"error: '{name}' is not a valid C++ identifier", file=sys.stderr)
         return 1

@@ -1,0 +1,4 @@
+#!/bin/sh
+# psh - pinned shell. Replays context pins, then runs your command.
+# Override interpreter/state via PYTHON / PIN_PY env. Exit code passes through.
+exec "${PYTHON:-python}" "${PIN_PY:-pin.py}" wrap -- "$@"

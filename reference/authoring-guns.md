@@ -42,10 +42,12 @@ Every gun gets a per-gun `GunFinalTickResolver` ticklite at `Initialize`
 Consequences:
 - **`MaxAmmo = 0` disables the ammo/reload system entirely** (gate at resolver; member
   comment `FArtilleryGun.h:54`). This is the supported no-ammo pattern (heat guns etc.).
-- Set `MaxAmmo`/`Firerate`/`ReloadTime` as **member initializers**, never in the keyed
-  ctor body: the DataTable loader may default-construct the struct, and ctor-body
-  assignments never run on that path. Initializers apply either way and seed the
-  default attributes at `Initialize` (`FArtilleryGun.cpp:107-118`).
+- Set `MaxAmmo`/`Firerate`/`ReloadTime` by assigning the BASE members at the top of
+  your `Initialize` override, before `ARTGUN_MACROAUTOINIT` (which seeds attributes
+  from them, `FArtilleryGun.cpp:107-118`). Do NOT redeclare them in the derived
+  struct (same-named members shadow the base, and seeding reads the base) and do
+  NOT set them in ctor bodies (the DataTable loader may default-construct).
+  `Initialize` runs on every path.
 - The resolver only *counts down*; it never arms `COOLDOWN_REMAINING` after a shot
   and never touches `TRIGGER_PULLED`. Who writes those is the gun/ability's job
   (arming site not in the resolver - verify current source before relying on a spot).
@@ -143,8 +145,8 @@ for hit behavior. Base implementation: pulls owner transform as damage source an
 - [ ] Struct is `USTRUCT(BlueprintType)` with `GENERATED_BODY()` (loader uses reflection).
 - [ ] Module exposes it via `<MODULE>_API`.
 - [ ] `LoadableCPP` path omits the `F` prefix (`/Script/MyModule.MyGun`).
-- [ ] `MaxAmmo`/`Firerate`/`ReloadTime` declared as member initializers (they seed
-  default attributes at `Initialize`; ctor-body assignment is loader-fragile).
+- [ ] `MaxAmmo`/`Firerate`/`ReloadTime` assigned at the top of the `Initialize`
+  override, before the macro (never redeclared as members, never in ctor bodies).
 - [ ] Owner actor already registered with `UTransformDispatch`.
 - [ ] Owner has a `BeamFiringPoint` scene component if the gun needs a muzzle.
 - [ ] Pattern registered (FCM) if the gun should fire from input.

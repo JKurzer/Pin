@@ -11,6 +11,9 @@ Workflow:
     python pin.py pin GUARDRAILS.md     # one-time setup (per state file)
     python pin.py emit                  # run at the START of every subturn
     python pin.py check --extract draft.txt   # optional: fidelity self-check
+    python pin.py wrap -- <command>     # pinned shell: replay pins, run command,
+                                        # pass through its exit code. Cross-platform.
+                                        # Thin shims for bare-name use: pinning/adapters/shell/
 
 State: JSON list resolved from $CONTEXT_PINS, $ARTILLERY_GUNS_PINS (legacy),
 ~/.context-pins.json, or ~/.artillery-guns-pins.json (legacy), first match wins.
@@ -138,12 +141,8 @@ def cmd_list(_args) -> int:
     return 0
 
 
-def cmd_emit(_args) -> int:
-    pins = load_state()
-    if not pins:
-        print(f"error: no pins (state: {state_path()}). "
-              f"e.g.: python pin.py pin GUARDRAILS.md", file=sys.stderr)
-        return 1
+def _emit_body(pins, quiet: bool) -> int:
+    """Render all pins. Shared by cmd_emit and cmd_wrap."""
     emitted, total_bytes, missing = 0, 0, 0
     for i, p in enumerate(pins, 1):
         path = Path(p["path"])
@@ -167,11 +166,31 @@ def cmd_emit(_args) -> int:
         print(f"=== END PINNED {i}/{len(pins)} ===\n")
         emitted += 1
         total_bytes += size
-    if not getattr(_args, "quiet", False):
+    if not quiet:
         print(f"--- pin.py: emitted {emitted}/{len(pins)}"
               f"{f', {missing} MISSING' if missing else ''}, "
               f"{total_bytes} B, ~{int(total_bytes * TOKENS_PER_BYTE)} tokens ---")
     return 0
+
+
+def cmd_emit(_args) -> int:
+    pins = load_state()
+    if not pins:
+        print(f"error: no pins (state: {state_path()}). "
+              f"e.g.: python pin.py pin GUARDRAILS.md", file=sys.stderr)
+        return 1
+    return _emit_body(pins, getattr(_args, "quiet", False))
+
+
+def cmd_wrap(args) -> int:
+    """Pinned shell: replay pins, run the command, pass through its exit code."""
+    pins = load_state()
+    if pins:
+        _emit_body(pins, quiet=True)
+    command = list(args.command)
+    if command and command[0] == "--":
+        command = command[1:]
+    return subprocess.call(" ".join(command), shell=True) if command else 0
 
 
 # --- check: claim fidelity against the pinned corpus ----------------------
@@ -311,7 +330,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Replay pinned files verbatim into recent context. "
                     "Default action (no args) is emit.")
-    sub = parser.add_subparsers(dest="command")
+    sub = parser.add_subparsers(dest="subcommand")
     for name, help_text in [("pin", "add files to the pin list"),
                             ("unpin", "remove files from the pin list")]:
         sp = sub.add_parser(name, help=help_text)
@@ -328,11 +347,16 @@ def main() -> int:
     src.add_argument("--extract", help="extract claim-shaped passages from file, or - for stdin")
     sp.add_argument("--tolerance", type=int, default=2,
                     help="max Damerau-Levenshtein distance (default 2)")
+    sp = sub.add_parser("wrap", help="pinned shell: replay pins, run command, "
+                                     "pass through exit code")
+    sp.add_argument("command", nargs=argparse.REMAINDER,
+                    help="command to run, after --")
     args = parser.parse_args()
 
     handlers = {"pin": cmd_pin, "unpin": cmd_unpin, "list": cmd_list,
-                "clear": cmd_clear, "emit": cmd_emit, "check": cmd_check, None: cmd_emit}
-    return handlers[args.command](args)
+                "clear": cmd_clear, "emit": cmd_emit, "check": cmd_check,
+                "wrap": cmd_wrap, None: cmd_emit}
+    return handlers[args.subcommand](args)
 
 
 if __name__ == "__main__":

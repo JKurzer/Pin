@@ -37,6 +37,7 @@ features, not porting.
 | code-puppy | `adapters/code-puppy/context_pins/` | `load_prompt` hook → system prompt every run; drift warning on `agent_run_end`; `pin_context` tool for recency bumps |
 | Claude Code | `adapters/claude-code/` | `UserPromptSubmit` hook → `additionalContext` on every prompt |
 | Anything with an always-include file | `adapters/static/` | `python pin.py emit --quiet > PINNED.md`, `@`-include it from CLAUDE.md / AGENTS.md / .cursor/rules |
+| Shell-command harnesses | `adapters/shell/` | `python pin.py wrap -- <cmd>` replays pins then runs the command, exit code passes through. `psh`/`psh.bat`/`psh.ps1` shims give it a bare name. Involuntary injection for agents that only get a shell; file-tool reads still bypass it (that takes a harness hook, e.g. the code-puppy adapter) |
 
 ## Core usage
 
@@ -45,7 +46,26 @@ python scripts/pin.py pin GUARDRAILS.md     # write state (only the core does th
 python scripts/pin.py emit                  # render (recency bump, manual)
 python scripts/pin.py emit --quiet          # render for static includes (no summary line)
 python scripts/pin.py check --extract f.md  # claim fidelity vs pinned corpus (needs rapidfuzz)
+python scripts/pin.py wrap -- <command>     # pinned shell: replay pins, run command, keep exit code
 ```
+
+## Rules cards (human notes)
+
+A rules card is the cost knob: a distilled <=20-line file of the rules agents
+actually violate (~500 tokens), pinned INSTEAD of full docs. See
+../RULES-CARD.md for an example (example only - not wired to anything).
+
+- Floor + working-set model: the human seeds the pin set (the card - the
+  involuntary floor). The agent MAY add pins for its subtask
+  (`python pin.py pin <file>`); they stay until someone unpins. The floor
+  cannot be diluted, only appended to.
+- With a shell-only agent: hand it the pinned shell - "run every command as
+  `psh <cmd>`". One sentence of explanation; the mechanism is four lines you
+  can audit.
+- Card hygiene: one line per rule; only rules that have bitten someone; full
+  docs by reference. If a rule needs a paragraph it lives in the long docs and
+  the card points at it. Re-derive the card from incident reviews, not from
+  the docs' table of contents.
 
 ## Sizing
 

@@ -114,8 +114,12 @@ Sourced from code, comments, and TODOs. Trust the code over the comments; both a
   gated on `MAX_AMMO > 0`. (An earlier eval note claimed cooldown was never decremented -
   falsified 2026-08 by direct read.) Unverified: the post-shot arming site of
   `COOLDOWN_REMAINING`/`TRIGGER_PULLED`.
-- Gun stats in the keyed-ctor body are a trap: the DataTable loader may default-construct,
-  skipping them. Use member initializers (`FArtilleryGun.h:54-60` shows the pattern).
+- Gun stats: assign the base members (`MaxAmmo`/`Firerate`/`ReloadTime`) at the top of
+  your `Initialize` override, before the macro seeds attributes from them
+  (`FArtilleryGun.cpp:107-118`). Two traps: ctor bodies never run when the DataTable
+  loader default-constructs, and redeclaring the members in your struct SHADOWS the
+  base ones - the shadow value never reaches seeding (and duplicate UPROPERTY names
+  in a hierarchy are UHT-hostile).
 - `~FArtilleryGun` calls `Deregister` only `if (MyDispatch && MyDispatch->IsGunLive(MyGunKey))`
   — guns owned elsewhere (inventory) or never registered won't be deregistered by the dtor.
 
