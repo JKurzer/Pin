@@ -69,8 +69,12 @@ actually violate (~500 tokens), pinned INSTEAD of full docs. See
 
 ## Sizing
 
-GUARDRAILS-scale pins (~2.4 KB) cost ~600 tokens per injection; the current
-live set (rules + FArtilleryGun.h) is ~2.4k tokens. Keep pins to short hot-loop
+GUARDRAILS-scale pins (~2.4 KB) cost ~600 tokens per injection. Keep pins to short hot-loop
 rule files plus at most one ground-truth source file. The mechanism exists to
 defeat drift on *rules* and kill docs-citing-docs hearsay; it is not a
 document-retrieval system.
+
+## Additional Notes
+Pin can be set up using hooks to fire with each step in a sub-turn, or attached to specific
+commands. That's outside the scope of this, but it's not particularly difficult. Most users
+will end up heavily customizing Pin, so I figured keeping this brief was best.
