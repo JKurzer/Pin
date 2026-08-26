@@ -2,7 +2,9 @@ This is the Pin machinery that I normally use for controlling agents by repeated
 models, you generally get a ton of drift even during a turn. As a result, this is a deterministic and forceful way to both repeatedly ingrain context, and
 allow agents to manage their own context. This is generally deployed as part of a skill, to keep soft guidelines in context, refresh repository maps or guidelines, and keep task scope at top of context.
 
-While this version uses only nudges, I advocate for a hard-kill strategy in the future.
+Best practice is to launch agent shells with pin, or hook it directly into your harness. Relying on agents to use it as part of their normal CoT behavior is not advised.
+
+While this version uses only nudges, I advocate for a hard-kill strategy in the future. Our experience indicates that only enforced behavior is consistent.
 
 You can pin just about anything, but we normally pin either guardrails.md or a rule card. Bear in mind, again, these are simply context reinjections. You MUST use actual OS-level permissions with any agent and harness. You SHOULD also maintain a network killswitch at the router level off-box. Be aware that agents can and will sudo su their way out if you let them, because that's what HUMAN USERS do. This doesn't mean they're conscious, it just means we taught them to try random stuff when
 plan A doesn't work.
