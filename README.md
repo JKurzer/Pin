@@ -6,7 +6,7 @@ Best practice is to launch agent shells with pin, or hook it directly into your 
 
 ## What's here
 
-- `SKILL.md` + `scripts/pin.py` — the skill itself (canonical source of the installed context-pins skill; install notes at the bottom of SKILL.md).
+- `SKILL.md` + `scripts/pin.py` — the skill itself (canonical source of the installed context-pins skill; `python scripts/install.py` puts it in place, notes at the bottom of SKILL.md).
 - `pinning/` — the portability contract and adapters (code-puppy, Claude Code, static includes, shell wrap).
 - `examples/` — real cards in daily use: a performance floor, a research floor, an adversarial-fleet floor, and the working-set session-card skeleton. GUARDRAILS.md and EXAMPLE_RULE_CARD.md at the root are two more.
 - `GUARDRAILS.md` — the guardrails card this repo was dogfooded with.

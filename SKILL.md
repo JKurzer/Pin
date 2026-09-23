@@ -56,8 +56,17 @@ No subcommand = `emit`.
 
 ## Layout / install
 
-This repo is the skill's canonical source. Install by copying the pieces into
-your agent's paths:
+This repo is the skill's canonical source. One command installs it:
+
+```
+python scripts/install.py                      # skill + code-puppy adapter
+python scripts/install.py --vendor <proj-dir>  # vendor pin.py into a project
+                                               # (tools/pin/scripts/pin.py)
+```
+
+Idempotent (byte-compared; safe to re-run). `--no-adapter` skips the adapter;
+`--dest <dir>` targets a different agent home. What it does, if you'd rather
+walk it by hand:
 
 - **Skill**: this directory (`SKILL.md` + `scripts/pin.py`) →
   `~/.code_puppy/skills/context-pins/` (or your framework's skills path).
