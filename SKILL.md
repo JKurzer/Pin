@@ -1,27 +1,72 @@
 ---
-name: pin
-description: Provide a context management capacity to agents.
+name: context-pins
+description: Deterministic context pinning for agent runs via scripts/pin.py (pin/unpin/list/emit/check/wrap) — replays small pinned files (rules cards, one ground-truth source) verbatim so standing rules survive long sessions. Use when pinned context shows drift warnings, when instructions keep getting forgotten mid-session, or when managing ~/.context-pins.json state.
 ---
 
-# Pin - A quick tool for managing the flow of context.
-This allows a user to force certain text to remain in context even mid-turn by simply reinjecting it.
-It also allows an agent to pin material that they need for reference to avoid losing it to context drift.
+# Context Pins — pin.py
 
-## Operating procedure (non-negotiable)
+Model attention over context is U-shaped: primacy and recency survive, the middle
+decays. A markdown instruction like "re-read RULES.md every turn" is itself
+middle-context and decays with everything else. The fix: **deterministic replay by
+tool, not voluntary recall by the model.**
 
-1. **At the start of EVERY subturn, run `python scripts/pin.py emit`.** It replays
-   GUARDRAILS.md (and anything else pinned) verbatim into recent context. Context attention
-   is U-shaped — start and end survive, the middle rots — so a deterministic tool call beats
-   a markdown reminder you'll forget. One-time setup: `python scripts/pin.py pin GUARDRAILS.md`.
-   GUARDRAILS.md defines the scope fence (locomotion internals and the threaded executor are
-   OUT), context discipline (grep-before-read, range reads), and behavioral rules. Optional
-   fidelity self-check before finalizing claims: `python pin.py check --extract draft.txt`
-   (exit 1 = a claim isn't backed by the pinned corpus; needs rapidfuzz).
-3. Stay inside the task's blast radius. If the answer lives behind the fence, stop and ask.
+## Commands
 
-## More Reading
+```
+python scripts/pin.py pin RULES.md        # add file(s) to the pin list (writes state)
+python scripts/pin.py unpin RULES.md      # remove file(s)
+python scripts/pin.py list                # show pins with size/hash + token estimate
+python scripts/pin.py clear               # remove all pins (the off switch)
+python scripts/pin.py emit                # replay all pins verbatim (recency bump)
+python scripts/pin.py emit --quiet        # render for static includes (no summary line)
+python scripts/pin.py check --extract f.md  # claim fidelity vs pinned corpus (needs rapidfuzz; exit 1 on failure)
+python scripts/pin.py wrap -- <command>   # pinned shell: replay pins, run command, keep exit code
+```
 
-- [scripts/pin.py](scripts/pin.py) — The actual Pin script. deterministic context pinning (emit/check).
-- [Pinning And Adapters](https://github.com/JKurzer/Pin/blob/main/pinning/README.md) — How to spin up the pin hook for your agent harness.
-- [reference/locomotion-menu.md](reference/locomotion-menu.md) — the ONLY approved way to answer locomotion questions.
+No subcommand = `emit`.
 
+## State & render contract (keep adapters in sync)
+
+- State: a JSON array, resolved `$CONTEXT_PINS` > `$ARTILLERY_GUNS_PINS` (legacy) >
+  `~/.context-pins.json` > `~/.artillery-guns-pins.json` (legacy). First match wins.
+  ```json
+  [{"path": "C:/abs/path/RULES.md", "sha256": "<hex-at-pin-time>", "bytes": 900}]
+  ```
+- **State is written only by pin.py** (pin/unpin/clear — stdlib-only). Adapters only render.
+- Render: per pin, a header `path (size, sha256:first12 [CHANGED since pinned])` then
+  verbatim content. Skip missing files; cap total bytes. The drift flag is the point —
+  stale pins become visible instead of silently wrong.
+- code-puppy adapter: installed at `~/.code_puppy/plugins/context_pins/`. Injects pins
+  into the system prompt every run (primacy), warns on drift at run end, and registers
+  the `pin_context` tool (voluntary recency bump mid-session). Empty state = no injection.
+
+## Pin hygiene
+
+- Pin only small hot-loop files: a rules card (<=20 lines, ~500 tokens; only rules that
+  have bitten someone, one line each) plus at most ONE ground-truth source file.
+  Hard caps: 16 KB/file, 16 pins, 64 KB/emit. This is a drift-killer, not a
+  document-retrieval system.
+- Floor + working set: the human seeds the floor; the agent may append subtask pins.
+  The floor cannot be diluted, only appended to.
+- After editing a pinned file, re-pin it (`pin.py pin <file>` won't double-pin; unpin
+  then pin, or just re-pin — the hash refreshes on next pin call after unpin).
+- `check` verifies claim-shaped passages in a draft actually appear in the pinned
+  corpus (exact-substring fast path, then partial-ratio alignment + Damerau-Levenshtein
+  within tolerance). Only subcommand needing a non-stdlib dep (rapidfuzz).
+
+## Layout / install
+
+This repo is the skill's canonical source. Install by copying the pieces into
+your agent's paths:
+
+- **Skill**: this directory (`SKILL.md` + `scripts/pin.py`) →
+  `~/.code_puppy/skills/context-pins/` (or your framework's skills path).
+- **code-puppy adapter**: `pinning/adapters/code-puppy/context_pins/` →
+  `~/.code_puppy/plugins/context_pins/` (system-prompt injection every run).
+- **Project side**: seed a rules card at the repo root and pin it once
+  (`python scripts/pin.py pin RULES.md`). The card's last line should tell
+  agents how to re-pin it after edits — see `examples/`.
+- **State**: one JSON array at `~/.context-pins.json` (see the contract above).
+
+See `examples/` for real cards, and `pinning/README.md` for the adapter
+portability contract.

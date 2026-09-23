@@ -53,7 +53,9 @@ python scripts/pin.py wrap -- <command>     # pinned shell: replay pins, run com
 
 A rules card is the cost knob: a distilled <=20-line file of the rules agents
 actually violate (~500 tokens), pinned INSTEAD of full docs. See
-../RULES-CARD.md for an example (example only - not wired to anything).
+../EXAMPLE_RULE_CARD.md for a bare example and ../examples/ for real
+cards in daily use (performance, research, adversarial fleet, and the
+working-set session pattern).
 
 - Floor + working-set model: the human seeds the pin set (the card - the
   involuntary floor). The agent MAY add pins for its subtask

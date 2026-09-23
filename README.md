@@ -4,6 +4,13 @@ allow agents to manage their own context. This is generally deployed as part of 
 
 Best practice is to launch agent shells with pin, or hook it directly into your harness. Relying on agents to use it as part of their normal CoT behavior is not advised.
 
+## What's here
+
+- `SKILL.md` + `scripts/pin.py` — the skill itself (canonical source of the installed context-pins skill; install notes at the bottom of SKILL.md).
+- `pinning/` — the portability contract and adapters (code-puppy, Claude Code, static includes, shell wrap).
+- `examples/` — real cards in daily use: a performance floor, a research floor, an adversarial-fleet floor, and the working-set session-card skeleton. GUARDRAILS.md and EXAMPLE_RULE_CARD.md at the root are two more.
+- `GUARDRAILS.md` — the guardrails card this repo was dogfooded with.
+
 While this version uses only nudges, I advocate for a hard-kill strategy in the future. Our experience indicates that only enforced behavior is consistent.
 
 You can pin just about anything, but we normally pin either guardrails.md or a rule card. Bear in mind, again, these are simply context reinjections. You MUST use actual OS-level permissions with any agent and harness. You SHOULD also maintain a network killswitch at the router level off-box. Be aware that agents can and will sudo su their way out if you let them, because that's what HUMAN USERS do. This doesn't mean they're conscious, it just means we taught them to try random stuff when
