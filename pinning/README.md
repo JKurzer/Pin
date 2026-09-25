@@ -60,7 +60,8 @@ working-set session pattern).
 - Floor + working-set model: the human seeds the pin set (the card - the
   involuntary floor). The agent MAY add pins for its subtask
   (`python pin.py pin <file>`); they stay until someone unpins. The floor
-  cannot be diluted, only appended to.
+  cannot be diluted, only appended to. Why the floor is read-only for
+  agents: ../Dogel.md (goal-content integrity -- drift, then cascade).
 - With a shell-only agent: hand it the pinned shell - "run every command as
   `psh <cmd>`". One sentence of explanation; the mechanism is four lines you
   can audit.
