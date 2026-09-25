@@ -62,6 +62,8 @@ working-set session pattern).
   (`python pin.py pin <file>`); they stay until someone unpins. The floor
   cannot be diluted, only appended to. Why the floor is read-only for
   agents: ../Dogel.md (goal-content integrity -- drift, then cascade).
+  To adopt Dogel.md as a pinned floor: `python scripts/pin.py pin Dogel.md`
+  -- deliberately NOT default; adoption is a human decision.
 - With a shell-only agent: hand it the pinned shell - "run every command as
   `psh <cmd>`". One sentence of explanation; the mechanism is four lines you
   can audit.
